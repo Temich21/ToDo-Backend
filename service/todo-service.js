@@ -1,27 +1,141 @@
 const ToDoModel = require('../models/todo-model')
+const ApiError = require('../exceptions/api-error')
 
 class ToDoService {
     async createNewToDoList(userId) {
         const existingList = await ToDoModel.findOne({ user: userId })
 
-         if (existingList) {
+        if (existingList) {
             console.log(`ToDo list for ${userId} is already exist`)
-            return null
+            return
         }
 
-        const newToDoList = await ToDoModel.create({ user: userId, todoList: [{id: '12345', title: 'Buy eggs'}, {id: '23456', title: 'Buy milk'}, {id: '423462', title: 'Clean house'}] })
-        return newToDoList
+        const newToDoObj = await ToDoModel.create(
+            {
+                user: userId,
+                todoList: {
+                    personalToDos: [],
+                }
+            }
+        )
+        return newToDoObj
     }
 
-    async getToDoList(userId) {
-        const todoList = await ToDoModel.findOne({ user: userId })
-        return todoList.todoList
+    async getToDoList(userId, isPersonal) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        if (isPersonal) {
+            return todoObj.todoList.personalToDos
+        }
+
+        return todoObj.todoList.groupToDos
     }
 
-    async addNewToDo(userId, newToDo) {
+    async addNewToDo(userId, newToDo, isPersonal) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        if (isPersonal) {
+            todoObj.todoList.personalToDos.push(newToDo)
+            await todoObj.save()
+        } else {
+            const groupIndex = todoObj.todoList.groupToDos.findIndex(groupTodoList => groupTodoList._id.toString() === newToDo._id.toString())
+
+            if (groupIndex > -1) {
+                todoObj.todoList.groupToDos[groupIndex].todos.push(newToDo.todo)
+                await todoObj.save()
+            } else {
+                const newGroupTodoList = { _id: newToDo._id, title: newToDo.title, todos: [newToDo.todo] }
+                todoObj.todoList.groupToDos.push(newGroupTodoList)
+                await todoObj.save()
+            }
+        }
+    }
+
+    async editToDo(userId, editedToDo, isPersonal) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        if (isPersonal) {
+            const index = todoObj.todoList.personalToDos.findIndex(todo => todo._id.toString() === editedToDo._id)
+
+            if (index > -1) {
+                todoObj.todoList.personalToDos[index] = editedToDo
+                await todoObj.save()
+            } else {
+                throw ApiError.ToDoCantFindError()
+            }
+        } else {
+            const groupIndex = todoObj.todoList.groupToDos.findIndex(groupTodoList => groupTodoList._id.toString() === editedToDo._id.toString())
+
+            if (groupIndex > -1) {
+                const todoIndex = todoObj.todoList.groupToDos[groupIndex].todos.findIndex(todo => todo._id.toString() === editedToDo.todo._id)
+
+                if (todoIndex > -1) {
+                    todoObj.todoList.groupToDos[groupIndex].todos[todoIndex] = editedToDo.todo
+                    await todoObj.save()
+                } else {
+                    throw ApiError.ToDoCantFindError()
+                }
+
+            } else {
+                throw ApiError.ToDoCantFindError()
+            }
+        }
+    }
+
+    async deleteToDo(userId, todoId, isPersonal, groupId) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        if (isPersonal) {
+            const index = todoObj.todoList.personalToDos.findIndex(todo => todo._id.toString() === todoId)
+            if (index > -1) {
+                todoObj.todoList.personalToDos.splice(index, 1)
+                await todoObj.save()
+            } else {
+                throw ApiError.ToDoCantFindError()
+            }
+        } else {
+            const groupIndex = todoObj.todoList.groupToDos.findIndex(groupTodoList => groupTodoList._id.toString() === groupId)
+
+            if (groupIndex > -1) {
+                const todoIndex = todoObj.todoList.groupToDos[groupIndex].todos.findIndex(todo => todo._id.toString() === todoId)
+
+                if (todoIndex > -1) {
+                    todoObj.todoList.groupToDos[groupIndex].todos.splice(todoIndex, 1)
+                    await todoObj.save()
+                } else {
+                    throw ApiError.ToDoCantFindError()
+                }
+
+            } else {
+                throw ApiError.ToDoCantFindError()
+            }
+        }
+    }
+
+    async getAllUserToDos(userId) {
         const todoList = await ToDoModel.findOne({ user: userId })
-        todoList.todoList.push(newToDo)
-        todoList.save()
+
+        if (!todoList) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        return todoList.todoList.personalToDos.concat(todoList.todoList.groupToDos)
     }
 }
 

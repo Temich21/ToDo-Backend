@@ -4,6 +4,7 @@ const mailService = require('./mail-service')
 const uuid = require('uuid')
 const tokenService = require('./token-service')
 const todoService = require('./todo-service')
+const groupService = require('./group-service')
 const UserDto = require('../dtos/user-dto')
 const ApiError = require('../exceptions/api-error')
 
@@ -19,11 +20,13 @@ class UserService {
         const user = await UserModel.create({ email, password: hashPassword, activationLink })
         await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
-        const userDto = new UserDto(user) // id, email, isActiovated
+        const userDto = new UserDto(user)
         const tokens = tokenService.generateTokens({ ...userDto })
         await tokenService.saveToken(userDto.id, tokens.refreshToken)
 
         await todoService.createNewToDoList(userDto.id)
+
+        await groupService.createNewGroupToDoList({userId: userDto.id, title: 'Test Group ToDo'})
 
         return { ...tokens, user: userDto }
     }
