@@ -1,61 +1,46 @@
 const GroupToDoModel = require('../models/group-model')
+const ToDoModel = require('../models/todo-model')
 const todoService = require('./todo-service')
 const ApiError = require('../exceptions/api-error')
+const mongoose = require('mongoose')
 const { ObjectId } = require('mongodb')
 
 class GroupToDoService {
-    async createNewGroupToDoList(data) {
-        const newGroupToDoList = await GroupToDoModel.create(
-            {
-                title: data.title,
-                createdBy: data.userId,
+    async createNewGroupToDoList(groupInfo) {
+        try {
+            const newGroupToDoList = await GroupToDoModel.create({
+                title: groupInfo.title,
+                createdBy: new mongoose.Types.ObjectId(groupInfo.createdBy),
                 createdDate: (new Date()).toString(),
-                participents: [{ _id: data.userId, email: "rahmat97@mail.ru", name: "Artem Rakhmatullin" }],
-                todoList: [
-                    {
-                        title: "Buy eggs",
-                        author: { _id: data.userId, email: "rahmat97@mail.ru", name: "Artem Rakhmatullin" },
-                        description: "I have to go to the supermarker and buy eggs.",
-                        deadline: "2021-09-13",
-                        priority: 2,
-                        completed: false
-                    },
-                    {
-                        title: "Buy milk",
-                        author: { _id: data.userId, email: "rahmat97@mail.ru", name: "Artem Rakhmatullin" },
-                        description: "I have to go to the supermarker and buy milk.",
-                        deadline: "2021-09-13",
-                        priority: 3,
-                        completed: false
-                    },
-                    {
-                        title: "Clean house",
-                        author: { _id: data.userId, email: "rahmat97@mail.ru", name: "Artem Rakhmatullin" },
-                        description: "We are waiting guests and we need to clean house.",
-                        deadline: "2021-09-15",
-                        priority: 1,
-                        completed: false
-                    },
-                    {
-                        title: "Clean house 2",
-                        author: { _id: 'sacxz', email: "v1@mail.ru", name: "Bla bla" },
-                        description: "We are waiting guests and we need to clean house. 2",
-                        deadline: "2021-09-13",
-                        priority: 1,
-                        completed: false
-                    },
-                ],
-            }
-        )
+                participants: groupInfo.participants.map(participant => ({
+                    ...participant,
+                    _id: new mongoose.Types.ObjectId(participant._id),
+                })),
+                todoList: []
+            })
 
-        return newGroupToDoList._id
+            // Think about better solution
+            groupInfo.participants.forEach(async (participant) => {
+                await todoService.addGroup(participant._id, { _id: newGroupToDoList._id, title: groupInfo.title })
+            })
+
+            return newGroupToDoList._id
+        } catch (e) {
+            console.log(e)
+        }
     }
 
-    async getGroupToDoList(groupId) {
+    async getGroupToDoList(groupId, userId) {
         const groupTodoList = await GroupToDoModel.findById(groupId)
 
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
+        }
+
+        const isUserAParticipant = groupTodoList.participants.some(participant => participant._id.toString() === userId)
+
+        if (!isUserAParticipant) {
+            throw ApiError.UserIsNotParticipant()
         }
 
         return groupTodoList.todoList
@@ -67,7 +52,6 @@ class GroupToDoService {
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
         }
-
         const newId = (new ObjectId()).toString()
         const newGroupTodoWithId = {
             ...newGroupTodo,
@@ -113,15 +97,68 @@ class GroupToDoService {
 
         const index = groupTodoList.todoList.findIndex(todo => todo._id.toString() === todoId)
         if (index > -1) {
-            console.log(groupTodoList.todoList[index].author._id.toString());
             await todoService.deleteToDo(groupTodoList.todoList[index].author._id.toString(), todoId, false, groupId)
-            
+
             groupTodoList.todoList.splice(index, 1)
 
             await groupTodoList.save()
         } else {
             throw ApiError.ToDoCantFindError()
         }
+    }
+
+    async getGroupsInfo(userId) {
+        const todoUserObj = await ToDoModel.findOne({ user: userId })
+        const groupsIdList = todoUserObj.todoList.groupToDos.map(group => group._id)
+
+        const groupsList = await GroupToDoModel.find({
+            '_id': { $in: groupsIdList }
+        })
+
+        const groupsInfoList = groupsList.map(group => {
+            let completedToDo = 0, uncompletedToDo = 0
+
+            group.todoList.forEach(todo => {
+                todo.completed === true ? completedToDo++ : uncompletedToDo++
+            })
+
+            return {
+                _id: group._id,
+                title: group.title,
+                participants: group.participants,
+                completedToDo: completedToDo,
+                uncompletedToDo: uncompletedToDo
+            }
+        })
+
+        return groupsInfoList
+    }
+
+    async leaveGroup(groupId, userId) {
+        const groupTodoObj = await GroupToDoModel.findById(groupId)
+        const participantIndex = groupTodoObj.participants.findIndex(participant => participant._id.toString() === userId)
+
+        if (participantIndex > -1) {
+            groupTodoObj.participants.splice(participantIndex, 1)
+
+            await todoService.leaveGroup(groupId, userId)
+
+            if (groupTodoObj.participants.length === 0) {
+                await GroupToDoModel.deleteOne({ _id: groupId })
+                console.log('GroupToDo was deleted because there are no more participants')
+                return
+            }
+
+            groupTodoObj.save()
+        } else {
+            console.log('User is not participant already')
+        }
+    }
+
+    async getUserList(groupId) {
+        const groupTodoObj = await GroupToDoModel.findById(groupId)
+
+        return groupTodoObj.participants
     }
 }
 

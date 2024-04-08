@@ -1,5 +1,6 @@
 const ToDoModel = require('../models/todo-model')
 const ApiError = require('../exceptions/api-error')
+const { group } = require('console')
 
 class ToDoService {
     async createNewToDoList(userId) {
@@ -135,7 +136,47 @@ class ToDoService {
             throw ApiError.ToDoListDoesnotExist()
         }
 
-        return todoList.todoList.personalToDos.concat(todoList.todoList.groupToDos)
+        const allUserToDos = {
+            personalToDos: [...todoList.todoList.personalToDos],
+            groupsToDos: []
+        }
+
+        todoList.todoList.groupToDos.forEach(group => {
+            allUserToDos.groupsToDos.push({ groupTitle: group.title, groupTodos: [...group.todos] })
+        })
+
+        return allUserToDos
+    }
+
+    async addGroup(userId, groupInfo) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        const newGroupTodoList = { _id: groupInfo._id, title: groupInfo.title, todos: [] }
+        todoObj.todoList.groupToDos.push(newGroupTodoList)
+        await todoObj.save()
+    }
+
+    async leaveGroup(groupId, userId) {
+        const todoObj = await ToDoModel.findOne({ user: userId })
+
+        if (!todoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
+
+        const groupIndex = todoObj.todoList.groupToDos.findIndex(groupToDo => groupToDo._id.toString() === groupId)
+
+        if (groupIndex > -1) {
+            todoObj.todoList.groupToDos.splice(groupIndex, 1)
+
+            await todoObj.save()
+        } else {
+            console.log('Group do not exist already')
+        }
+
     }
 }
 

@@ -43,6 +43,17 @@ class ToDoController {
             next()
         }
     }
+
+    async getAllUserToDos(req, res, next) {
+        try {
+            const userId = req.params.id
+            const todoList = await todoService.getAllUserToDos(userId)
+            return res.json(todoList)
+        } catch (e) {
+            next()
+        }
+    }
+
 }
 
 module.exports = new ToDoController()

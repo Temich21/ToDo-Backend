@@ -15,21 +15,23 @@ router.post('/login', userController.login)
 router.get('/logout', userController.logout)
 router.get('/activate/:link', userController.activate)
 router.get('/refresh', userController.refresh)
-router.get('/users', authMiddleware, userController.getUsers)
 
 router.get('/todo/:userId', authMiddleware, todoController.getToDoList)
 router.post('/todo/:userId', authMiddleware, todoController.addNewToDo)
 router.put('/todo/:userId', authMiddleware, todoController.editToDo)
 router.delete('/todo/:userId/:todoId', authMiddleware, todoController.deleteToDo)
 
-// router.get('/todo/group/:id', authMiddleware, todoController.getToDoFromGroups)
-// router.get('/todo/all/:id', authMiddleware, todoController.getAllUserToDos)
+router.get('/todo/all/:userId', authMiddleware, todoController.getAllUserToDos) //Front
 
-// router.post('/group/create-new', authMiddleware, groupController.createNewGroupToDoList)
-router.get('/group/:groupId', authMiddleware, groupController.getGroupToDoList)
+router.post('/group/create', authMiddleware, groupController.createNewGroupToDoList)
+router.get('/group/:groupId/:userId', authMiddleware, groupController.getGroupToDoList)
 router.post('/group/:groupId', authMiddleware, groupController.addNewGroupToDo)
 router.put('/group/:groupId', authMiddleware, groupController.editGroupToDo)
 router.delete('/group/:groupId/:todoId', authMiddleware, groupController.deleteGroupToDo)
+router.patch('/group/:groupId/leave',authMiddleware, groupController.leaveGroup )
+router.get('/group/:groupId/users', authMiddleware, groupController.getUserList)
 
+router.get('/groups/:userId', authMiddleware, groupController.getGroupsInfo)
+router.get('/groups/users', authMiddleware, userController.getRequiredUsers)
 
 module.exports = router

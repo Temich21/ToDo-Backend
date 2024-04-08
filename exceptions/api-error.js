@@ -23,4 +23,8 @@ module.exports = class ApiError extends Error {
     static ToDoCantFindError() {
         return new ApiError(400, 'Canot find needed todo')
     }
+
+    static UserIsNotParticipant() {
+        return new ApiError(403, 'User is not in participant list')
+    }
 }

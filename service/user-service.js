@@ -9,7 +9,7 @@ const UserDto = require('../dtos/user-dto')
 const ApiError = require('../exceptions/api-error')
 
 class UserService {
-    async registration(email, password) {
+    async registration(email, name, password) {
         const candidate = await UserModel.findOne({ email })
         if (candidate) {
             throw ApiError.BadRequest(`User with this email ${email} already exist`)
@@ -17,7 +17,7 @@ class UserService {
         const hashPassword = await bcrypt.hash(password, 3)
         const activationLink = uuid.v4()
 
-        const user = await UserModel.create({ email, password: hashPassword, activationLink })
+        const user = await UserModel.create({ email, name, password: hashPassword, activationLink })
         await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`)
 
         const userDto = new UserDto(user)
@@ -25,8 +25,6 @@ class UserService {
         await tokenService.saveToken(userDto.id, tokens.refreshToken)
 
         await todoService.createNewToDoList(userDto.id)
-
-        await groupService.createNewGroupToDoList({userId: userDto.id, title: 'Test Group ToDo'})
 
         return { ...tokens, user: userDto }
     }
@@ -84,9 +82,17 @@ class UserService {
         return { ...tokens, user: userDto }
     }
 
-    async getAllUsers() {
-        const users = await UserModel.find()
-        return users
+    async getRequiredUsers(emailOrName) {
+        const users = await UserModel.find({
+            $or: [
+                { 'email': { $regex: `^${emailOrName}`, $options: 'i' } },
+                { 'name': { $regex: `^${emailOrName}`, $options: 'i' } }
+            ]
+        })
+
+        const usersBaseInfo = users.map(user => ({ _id: user._id, email: user.email, name: user.name }))
+
+        return usersBaseInfo
     }
 }
 
