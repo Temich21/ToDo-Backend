@@ -31,7 +31,7 @@ class GroupToDoService {
     }
 
     async getGroupToDoList(groupId, userId) {
-        const groupTodoList = await GroupToDoModel.findById(groupId)
+        const groupTodoList = await GroupToDoModel.findOne({ _id: groupId })
 
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
@@ -47,7 +47,7 @@ class GroupToDoService {
     }
 
     async addNewGroupToDo(groupId, newGroupTodo) {
-        const groupTodoList = await GroupToDoModel.findById(groupId)
+        const groupTodoList = await GroupToDoModel.findOne({ _id: groupId })
 
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
@@ -68,7 +68,7 @@ class GroupToDoService {
     }
 
     async editGroupToDo(groupId, editedGroupTodo) {
-        const groupTodoList = await GroupToDoModel.findById(groupId)
+        const groupTodoList = await GroupToDoModel.findOne({ _id: groupId })
 
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
@@ -89,7 +89,7 @@ class GroupToDoService {
     }
 
     async deleteGroupToDo(groupId, todoId) {
-        const groupTodoList = await GroupToDoModel.findById(groupId)
+        const groupTodoList = await GroupToDoModel.findOne({ _id: groupId })
 
         if (!groupTodoList) {
             throw ApiError.ToDoListDoesnotExist()
@@ -135,11 +135,13 @@ class GroupToDoService {
     }
 
     async leaveGroup(groupId, userId) {
-        const groupTodoObj = await GroupToDoModel.findById(groupId)
+        const groupTodoObj = await GroupToDoModel.findOne({ _id: groupId })
         const participantIndex = groupTodoObj.participants.findIndex(participant => participant._id.toString() === userId)
 
         if (participantIndex > -1) {
             groupTodoObj.participants.splice(participantIndex, 1)
+
+            groupTodoObj.todoList = groupTodoObj.todoList.filter(todo => todo.author._id.toString() !== userId)
 
             await todoService.leaveGroup(groupId, userId)
 
@@ -156,7 +158,11 @@ class GroupToDoService {
     }
 
     async getUserList(groupId) {
-        const groupTodoObj = await GroupToDoModel.findById(groupId)
+        const groupTodoObj = await GroupToDoModel.findOne({ _id: groupId })
+
+        if (!groupTodoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        }
 
         return groupTodoObj.participants
     }

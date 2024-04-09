@@ -9,8 +9,8 @@ module.exports = class ApiError extends Error {
     }
 
     static UnauthorizedError() {
-        return new ApiError(401, 'User is not authorised')
-    }
+        return new ApiError(401, 'You are not authorized!')
+    }   
 
     static BadRequest(message, errors=[]) {
         return new ApiError(400, message, errors)
@@ -25,6 +25,6 @@ module.exports = class ApiError extends Error {
     }
 
     static UserIsNotParticipant() {
-        return new ApiError(403, 'User is not in participant list')
+        return new ApiError(403, 'You are not in participant list!')
     }
 }
