@@ -46,7 +46,7 @@ class ToDoController {
 
     async getAllUserToDos(req, res, next) {
         try {
-            const userId = req.params.id
+            const userId = req.params.userId
             const todoList = await todoService.getAllUserToDos(userId)
             return res.json(todoList)
         } catch (e) {

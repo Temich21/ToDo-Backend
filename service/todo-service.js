@@ -130,19 +130,22 @@ class ToDoService {
     }
 
     async getAllUserToDos(userId) {
-        const todoList = await ToDoModel.findOne({ user: userId })
+        const todoList = await ToDoModel.findOne({ user: userId }).lean()
 
         if (!todoList) {
             throw ApiError.ToDoListDoesnotExist()
         }
 
-        const allUserToDos = {
-            personalToDos: [...todoList.todoList.personalToDos],
-            groupsToDos: []
-        }
+        const allUserToDos = [...todoList.todoList.personalToDos]
 
         todoList.todoList.groupToDos.forEach(group => {
-            allUserToDos.groupsToDos.push({ groupTitle: group.title, groupTodos: [...group.todos] })
+            if (!group.length) {
+                group.todos.forEach((todo) => {
+                    const todoExample = {...todo }
+                    console.log(todoExample)
+                    allUserToDos.push({ groupTitle: group.title, ...todo })
+                })
+            }
         })
 
         return allUserToDos
