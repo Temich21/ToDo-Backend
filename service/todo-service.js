@@ -141,8 +141,6 @@ class ToDoService {
         todoList.todoList.groupToDos.forEach(group => {
             if (!group.length) {
                 group.todos.forEach((todo) => {
-                    const todoExample = {...todo }
-                    console.log(todoExample)
                     allUserToDos.push({ groupTitle: group.title, ...todo })
                 })
             }

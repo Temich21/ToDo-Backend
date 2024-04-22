@@ -166,6 +166,24 @@ class GroupToDoService {
 
         return groupTodoObj.participants
     }
+
+    async addNewParticipant(groupId, newParticipant) {
+        const groupTodoObj = await GroupToDoModel.findOne({ _id: groupId })
+
+        if (!groupTodoObj) {
+            throw ApiError.ToDoListDoesnotExist()
+        
+        }
+        const isUserInTheList = groupTodoObj.participants.find(participant => participant._id.toString() === newParticipant._id)
+
+        if (isUserInTheList) {
+            throw ApiError.UserIsAlreadyInTheListOfParticipants()
+        }
+
+        groupTodoObj.participants.push(newParticipant)
+
+        groupTodoObj.save()
+    }
 }
 
 module.exports = new GroupToDoService()

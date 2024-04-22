@@ -21,13 +21,14 @@ router.post('/todo/:userId', authMiddleware, todoController.addNewToDo)
 router.put('/todo/:userId', authMiddleware, todoController.editToDo)
 router.delete('/todo/:userId/:todoId', authMiddleware, todoController.deleteToDo)
 
-router.get('/todo/all/:userId', authMiddleware, todoController.getAllUserToDos) //Front
+router.get('/todo/all/:userId', authMiddleware, todoController.getAllUserToDos)
 
 router.post('/group/create', authMiddleware, groupController.createNewGroupToDoList)
 router.get('/group/:groupId/:userId', authMiddleware, groupController.getGroupToDoList)
 router.post('/group/:groupId', authMiddleware, groupController.addNewGroupToDo)
 router.put('/group/:groupId', authMiddleware, groupController.editGroupToDo)
 router.delete('/group/:groupId/:todoId', authMiddleware, groupController.deleteGroupToDo)
+router.post('/group/:groupId/new-participant', authMiddleware, groupController.addNewParticipant) //Front
 router.patch('/group/:groupId/leave',authMiddleware, groupController.leaveGroup )
 router.get('/group/:groupId/users', authMiddleware, groupController.getUserList)
 

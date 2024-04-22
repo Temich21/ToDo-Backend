@@ -85,6 +85,17 @@ class GroupController {
             next()
         }
     }
+
+    async addNewParticipant(req, res, next) {
+        try {
+            const groupId = req.params.groupId
+            const newParticipant = req.body
+            await groupService.addNewParticipant(groupId, newParticipant)
+            return res.status(201).json({ message: 'The participant was successfully added.' })
+        } catch (e) {
+            next()
+        }
+    }
 }
 
 module.exports = new GroupController()
