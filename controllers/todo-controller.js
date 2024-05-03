@@ -7,7 +7,7 @@ class ToDoController {
             const todoList = await todoService.getToDoList(userId, true)
             return res.json(todoList)
         } catch (e) {
-            next()
+            next(e)
         }
     }
 
@@ -18,7 +18,7 @@ class ToDoController {
             await todoService.addNewToDo(userId, newToDo, true)
             return res.status(201).json({ message: 'ToDo was added successfully' })
         } catch (e) {
-            next()
+            next(e)
         }
     }
 
@@ -29,7 +29,7 @@ class ToDoController {
             await todoService.editToDo(userId, editedToDo, true)
             return res.status(201).json({ message: 'ToDo was edited successfully' })
         } catch (e) {
-            next()
+            next(e)
         }
     }
 
@@ -40,7 +40,7 @@ class ToDoController {
             await todoService.deleteToDo(userId, todoId, true)
             return res.status(201).json({ message: 'ToDo was deleted successful' })
         } catch (e) {
-            next()
+            next(e)
         }
     }
 
@@ -50,7 +50,7 @@ class ToDoController {
             const todoList = await todoService.getAllUserToDos(userId)
             return res.json(todoList)
         } catch (e) {
-            next()
+            next(e)
         }
     }
 
